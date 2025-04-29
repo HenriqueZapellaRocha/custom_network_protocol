@@ -26,13 +26,12 @@ def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
 
     for attempt in range(1, 4):
         sharedSocket.send(message, (receiver_ip, receiver_port))
-
+        time.sleep( 0.5 )
         if str(message_id) in reciver.ack:
             print( f"ack recebido TALK_ID:{message_id}" )
             reciver.ack.remove( str( message_id ) )
             return True
         else:
-            time.sleep(1)
             print( f"ack attempt TALK_ID:{message_id}" )
 
     print( f"desistindo do envio TALK {message_id}, timeout attempt" )

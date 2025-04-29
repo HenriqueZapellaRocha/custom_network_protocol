@@ -13,13 +13,8 @@ def mostrar_dispositivos():
             print(f"- {nome} → {ip}:{port} (último contato há {round(time.time() - ultimo_contato, 1)}s)")
 
 def enviar_mensagem():
-    destino = input("Nome do destinatário (conforme registro): ")
-    registros = protocol.get_registers()
-    if destino not in registros:
-        print("❌ Destinatário não encontrado.")
-        return
-    ip, port, _ = registros[destino]
-    mensagem = input("Digite a mensagem a enviar: ")
+    destino = input("Nome do destinatário (conforme registro):")
+    mensagem = input("Digite a mensagem a enviar:")
     sucesso = protocol.talk(destino, mensagem)
     if sucesso:
         print("✅ Mensagem enviada com sucesso!")

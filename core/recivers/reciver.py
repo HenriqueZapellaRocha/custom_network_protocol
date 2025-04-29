@@ -3,10 +3,12 @@ import time
 from core import sharedSocket
 import threading
 
+
 ids_recived = set()
 alives = dict()
 ack = set()
-alives_lock = threading.Lock()
+alive_lock = threading.Lock()
+
 
 
 def recive():
@@ -43,17 +45,17 @@ def heartbeat_listener():
     while True:
         data, (ip, port) = sock.recvfrom(1024)
         text = data.decode()
-        if text.startswith("HEARTBEAT "):
-            name = text.split(" ", 1)[1]
-            with alives_lock:
-                alives[data] = (ip, port, time.time())
+        with alive_lock:
+            if text.startswith("HEARTBEAT "):
+                name = text.split(" ", 1)[1]
+                alives[name] = (ip, port, time.time())
 
 
 
 def remove_old_heartbeat_messages() -> None:
     while True:
         current_time = time.time()
-        with alives_lock:
+        with alive_lock:
             to_remove = [key for key, value in alives.items() if current_time - value[2] >= 10]
             for key in to_remove:
                 del alives[key]

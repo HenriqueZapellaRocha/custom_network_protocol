@@ -14,11 +14,11 @@ def talk( name:str, message:str ) -> None:
     alives = get_registers()
     if name not in alives:
         print( "this name is not registered" )
-        return
 
     return senders.talk( message, alives.get(name)[0], alives.get(name)[1] )
 
 def get_registers() -> dict[str, list]:
-    return reciver.alives
+    with reciver.alive_lock:
+        return reciver.alives
 
 
