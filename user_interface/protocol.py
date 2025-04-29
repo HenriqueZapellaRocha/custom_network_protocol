@@ -16,7 +16,7 @@ def talk( name:str, message:str ) -> None:
         print( "this name is not registered" )
         return
 
-    senders.talk( message, alives.get(name)[0], alives.get(name)[1] )
+    return senders.talk( message, alives.get(name)[0], alives.get(name)[1] )
 
 def get_registers() -> dict[str, list]:
     return reciver.alives

@@ -32,8 +32,8 @@ def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
             reciver.ack.remove( str( message_id ) )
             return True
         else:
-            print( f"ack attempt TALK_ID:{message_id}" )
             time.sleep(1)
+            print( f"ack attempt TALK_ID:{message_id}" )
 
     print( f"desistindo do envio TALK {message_id}, timeout attempt" )
     return False
