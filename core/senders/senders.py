@@ -12,12 +12,9 @@ class IDGenerator:
         return self.counter
 
 
-sock_ack = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-sock_ack.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEPORT, 1 )
 ID_GEN = IDGenerator()
-sock_ack.bind( ( '', 1234 ) )
 
-broadcast_addr = ( '255.255.255.255', 12345 )
+broadcast_addr = ( '255.255.255.255', 1234 )
 
 def registry(name: str, broadcast_addr=('255.255.255.255', 1234)):
     while True:
@@ -32,11 +29,13 @@ def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
         sharedSocket.send(message, (receiver_ip, receiver_port))
         print(f"[Attempt {attempt}] Enviado: {message.decode()}")
 
-        if message_id in reciver.ack:
-            print(f"ack recebido {message_id}")
-            reciver.ack.remove( message_id )
+        if str(message_id) in reciver.ack:
+            print( f"ack recebido TALK_ID:{message_id}" )
+            reciver.ack.remove( str( message_id ) )
+            return True
         else:
-            print( f"ack attempt {message_id} " )
+            print( f"ack attempt TALK_ID:{message_id}" )
             time.sleep(3)
 
+    print( f"desistindo do envio TALK {message_id}, timeout attempt" )
     return False

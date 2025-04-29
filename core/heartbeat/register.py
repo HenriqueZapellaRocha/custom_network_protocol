@@ -5,7 +5,7 @@ alives = dict()
 
 heart_beat_sock_send = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 heart_beat_sock_send.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
-broadcast_addr = ( '255.255.255.255', 12345 )
+broadcast_addr = ( '255.255.255.255', 1234 )
 
 def registry( name:str ) -> None:
     count = 0
