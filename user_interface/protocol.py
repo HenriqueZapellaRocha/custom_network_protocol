@@ -1,18 +1,12 @@
-from core.heartbeat import register
-from core.recivers import reciver
 from core.senders import senders
+from core.recivers.reciver import recive, remove_old_heartbeat_messages
+from core.recivers import reciver
 import threading
 
-
-def start() -> None:
-    heart_beat_send = threading.Thread(target=senders.registry, args=( "heartbeat",), daemon=True)
-    heart_beat_send.start()
-
-    heart_beat_old = threading.Thread( target=reciver.remove_old_heartbeat_messages, daemon=True )
-    heart_beat_old.start()
-
-    channel = threading.Thread( target=reciver.recive, daemon=True )
-    channel.start()
+def start():
+    threading.Thread(target=senders.registry, args=("heartbeat",), daemon=True).start()
+    threading.Thread(target=remove_old_heartbeat_messages, daemon=True).start()
+    threading.Thread(target=recive, daemon=True).start()
 
 #sendfile <nome> <nome-arquivo>
 def talk( name:str, message:str ) -> None:

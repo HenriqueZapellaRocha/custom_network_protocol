@@ -1,5 +1,6 @@
 import socket
 import time
+from core import sharedSocket
 
 class IDGenerator:
     def __init__(self):
@@ -10,43 +11,37 @@ class IDGenerator:
         return self.counter
 
 
-sock_send = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-sock_send.settimeout( 1.0 )
+sock_ack = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+sock_ack.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEPORT, 1 )
+sock_ack.settimeout( 1.0 )
 ID_GEN = IDGenerator()
-sock_send.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
+sock_ack.bind( ( '', 1234 ) )
 
 broadcast_addr = ( '255.255.255.255', 12345 )
 
-def registry( name:str ) -> None:
-    count = 0
+def registry(name: str, broadcast_addr=('255.255.255.255', 1234)):
     while True:
-        sock_send.sendto( str( f"HEARTBEAT {name}" ).encode(), broadcast_addr )
-        time.sleep( 5 )
-        count += 1
-        if count > 2:
-            break
+        sharedSocket.send(f"HEARTBEAT {name}".encode(), broadcast_addr)
+        time.sleep(5)
 
-def talk( data:str, receiver_ip: str, receiver_port:int ) -> bool:
-
+def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
     message_id = ID_GEN.next_id()
-    message = "TALK " + str( message_id ) + " " + data
+    message = f"TALK {message_id} {data}".encode()
 
-    max_retries = 3
-    for attempt in range( 1, max_retries + 1 ):
-        sock_send.sendto( message.encode(), ( receiver_ip, receiver_port ))
-        print(f"[Attempt {attempt}] Enviado: {message}")
+    for attempt in range(1, 4):
+        sharedSocket.send(message, (receiver_ip, receiver_port))
+        print(f"[Attempt {attempt}] Enviado: {message.decode()}")
 
         try:
-            data_received, _ = sock_send.recvfrom(1024)
+            data_received, _ = sock_ack.recvfrom(1024)
             text = data_received.decode()
-            expected_ack = f"ACK {message_id}"
-            if text == expected_ack:
-                print( f"→ Recebido {text}, OK." )
+            if text == f"ACK {message_id}":
+                print(f"→ Recebido {text}, OK.")
                 return True
             else:
-                print(f"→ Recebido mensagem inesperada: {text}")
+                print(f"→ Recebido inesperado: {text}")
         except socket.timeout:
             print(f"→ Timeout aguardando ACK (tentativa {attempt}).")
 
-    print("→ Número máximo de tentativas excedido. Desistindo.")
+    print("→ Máximo de tentativas excedido.")
     return False

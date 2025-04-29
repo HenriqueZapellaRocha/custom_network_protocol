@@ -1,15 +1,19 @@
 import socket
 import time
+from core import sharedSocket
 
-sock_recive = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
 ids_recived = set()
 alives = dict()
 
 
+
 def recive():
-    sock_recive.bind( ( '', 12345 ) )
     while True:
-        data, address = sock_recive.recvfrom( 1024 )
+        try:
+            data, address = sharedSocket.receive(1024)
+        except socket.timeout:
+            # Nenhum pacote chegou dentro do timeout: volta pro topo do loop
+            continue
         sender_ip, sender_port = address
         print(f"{data} {sender_ip}:{sender_port}")
         data_text = data.decode()
@@ -26,7 +30,7 @@ def _talk( data_splited:list[str], sender_ip:str, sender_port:str ):
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         ack_message = f"ACK {data_splited[1]}"
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
-        sock_recive.sendto(ack_message.encode(), (sender_ip, sender_port))
+        sharedSocket.send( ack_message.encode(), (sender_ip, int( sender_port ) ) )
         print(data_splited[2])
 
 def _heartbeat( data:str, sender_ip:str, sender_port:int ) -> None:
