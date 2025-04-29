@@ -4,6 +4,7 @@ from core import sharedSocket
 
 ids_recived = set()
 alives = dict()
+ack = set()
 
 
 
@@ -12,7 +13,6 @@ def recive():
         try:
             data, address = sharedSocket.receive(1024)
         except socket.timeout:
-            # Nenhum pacote chegou dentro do timeout: volta pro topo do loop
             continue
         sender_ip, sender_port = address
         print(f"{data} {sender_ip}:{sender_port}")
@@ -20,7 +20,9 @@ def recive():
         data_splited = data_text.split( ' ', 2 )
 
         if len(data_splited) >= 2:
-            if data_splited[0] == "TALK":
+            if data_splited[0] == "ACK":
+                ack.add( data_splited[1] )
+            elif data_splited[0] == "TALK":
                 _talk( data_splited, sender_ip, sender_port )
             elif data_splited[0] == "HEARTBEAT":
                 _heartbeat( data_splited[1], sender_ip, sender_port )
