@@ -1,4 +1,3 @@
-import socket
 import time
 from core import sharedSocket
 from core.recivers import reciver
@@ -27,7 +26,6 @@ def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
 
     for attempt in range(1, 4):
         sharedSocket.send(message, (receiver_ip, receiver_port))
-        print(f"[Attempt {attempt}] Enviado: {message.decode()}")
 
         if str(message_id) in reciver.ack:
             print( f"ack recebido TALK_ID:{message_id}" )
@@ -35,7 +33,7 @@ def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
             return True
         else:
             print( f"ack attempt TALK_ID:{message_id}" )
-            time.sleep(3)
+            time.sleep(1)
 
     print( f"desistindo do envio TALK {message_id}, timeout attempt" )
     return False

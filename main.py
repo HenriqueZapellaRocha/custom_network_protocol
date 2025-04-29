@@ -4,6 +4,6 @@ import time
 protocol.start()
 
 while True:
-    time.sleep( 7 )
+    time.sleep( 1 )
     print( protocol.get_registers() )
     protocol.talk( "test1", "niceeeee to be here" )
