@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  device1:
+    stdin_open: true
+    tty: true
+    build: .
+    container_name: device1
+    volumes:
+      - ./:/app
+    networks:
+      testnet:
+        ipv4_address: 172.20.0.2
+
+  device2:
+    stdin_open: true
+    tty: true
+    build: .
+    container_name: device2
+    volumes:
+      - ./:/app
+    networks:
+      testnet:
+        ipv4_address: 172.20.0.3
+
+  device3:
+    stdin_open: true
+    tty: true
+    build: .
+    container_name: device3
+    volumes:
+      - ./:/app
+    networks:
+      testnet:
+        ipv4_address: 172.20.0.4
+
+networks:
+  testnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

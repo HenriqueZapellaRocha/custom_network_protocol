@@ -1,4 +1,6 @@
 import time
+from io import BufferedReader
+
 from core import sharedSocket
 from core.recivers import reciver
 
@@ -12,22 +14,43 @@ class IDGenerator:
 
 
 ID_GEN = IDGenerator()
-
 broadcast_addr = ( '255.255.255.255', 1234 )
 
-def registry(name: str, broadcast_addr=('255.255.255.255', 1234)):
-    while True:
-        sharedSocket.send(f"HEARTBEAT {name}".encode(), broadcast_addr)
-        time.sleep(5)
+#CHUNK <id> <seq> <dados>
+def file_chunk( messgae_id:int, seq:int, data:bytes ):
+    return
 
-def talk(data: str, receiver_ip: str, receiver_port: int) -> bool:
+#sendfile <nome> <nome-arquivo>
+def send_file( file_name:str, file_size:float, receiver_ip: str, receiver_port: int ) -> int:
+    message_id = ID_GEN.next_id()
+
+    for attempt in range( 1, 4 ):
+        sharedSocket.send(f"FILE {message_id} {file_name} {file_size}".encode(), (receiver_ip, receiver_port))
+        time.sleep( 0.1 )
+        if str( message_id ) in reciver.ack:
+            print( f"ack recebido FILE_ID:{message_id}" )
+            reciver.ack.remove( str( message_id ) )
+            return message_id
+        else:
+            print( f"ack attempt FILE_ID:{message_id}" )
+
+    print( f"desistindo do envio FILE {message_id}, timeout attempt" )
+    return -1
+
+
+def registry( name: str, broadcast_addr=( '255.255.255.255', 1234 ) ):
+    while True:
+        sharedSocket.send( f"HEARTBEAT {name}".encode() , broadcast_addr )
+        time.sleep( 5 )
+
+def talk( data: str, receiver_ip: str, receiver_port: int ) -> bool:
     message_id = ID_GEN.next_id()
     message = f"TALK {message_id} {data}".encode()
 
-    for attempt in range(1, 4):
-        sharedSocket.send(message, (receiver_ip, receiver_port))
-        time.sleep( 0.5 )
-        if str(message_id) in reciver.ack:
+    for attempt in range( 1, 4 ):
+        sharedSocket.send( message, ( receiver_ip, receiver_port ) )
+        time.sleep( 0.1 )
+        if str( message_id ) in reciver.ack:
             print( f"ack recebido TALK_ID:{message_id}" )
             reciver.ack.remove( str( message_id ) )
             return True
