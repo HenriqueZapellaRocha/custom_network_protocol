@@ -1,8 +1,8 @@
 import time
 from io import BufferedReader
-
 from core import sharedSocket
 from core.recivers import reciver
+import base64
 
 class IDGenerator:
     def __init__(self):
@@ -15,10 +15,54 @@ class IDGenerator:
 
 ID_GEN = IDGenerator()
 broadcast_addr = ( '255.255.255.255', 1234 )
+_window_size = 4
+_chunk_size = 1460
+waiting_acks = {}
 
 #CHUNK <id> <seq> <dados>
-def file_chunk( messgae_id:int, seq:int, data:bytes ):
+def file_chunk( data:BufferedReader, receiver_ip:str, receiver_port:int, file_size:int ) -> None:
+    seq = 0
+    bytes_sent = 0
+    while bytes_sent < file_size:
+        for window in range( _window_size ):
+            chunk_data = data.read( _chunk_size )
+            if not chunk_data:
+                break
+            chunk_data = base64.b64encode( chunk_data )
+            message_id = ID_GEN.next_id()
+            seq += 1
+            time.sleep( 0.1 )
+            print(f"mandando chunk {chunk_data}")
+            _send_chunk( message_id, seq, chunk_data, receiver_ip, receiver_port )
+            bytes_sent += len(base64.b64decode(chunk_data))
+
+        _window_slide_ack_wait( receiver_ip, receiver_port )
+
+def _send_chunk( message_id:int, seq:int, data:bytes, receiver_ip:str, receiver_port:int ) -> None:
+    sharedSocket.send( f"CHUNK {message_id} {seq} ".encode() + data, ( receiver_ip, receiver_port ) )
+    waiting_acks[message_id] = (seq, data)
     return
+
+def _window_slide_ack_wait( receiver_ip:str, receiver_port:int ):
+    while waiting_acks:
+        time.sleep(0.1)
+        for message_id, (seq, data) in list( waiting_acks.items() ):
+            with reciver.ack_lock:
+                if str( message_id ) in reciver.ack:
+                    waiting_acks.pop( message_id )
+                else:
+                    for i in range( 3 ):
+                        print(reciver.ack)
+                        _send_chunk( message_id, seq, data, receiver_ip, receiver_port )
+                        time.sleep(0.1)
+                        if str( message_id ) in reciver.ack:
+                            waiting_acks.pop(message_id)
+                    print( f"cancelando envio do arquivo, muitos attempts em um bloco de arquivo" )
+                    return
+
+
+
+
 
 #sendfile <nome> <nome-arquivo>
 def send_file( file_name:str, file_size:float, receiver_ip: str, receiver_port: int ) -> int:

@@ -17,7 +17,9 @@ def send_file( name:str, file_name:str ) -> bool:
         return False
     file_size = os.path.getsize( file_name )
     with open( file_name, 'rb' ) as f:
-        return senders.send_file( file_name, file_size, alives.get(name)[0], alives.get(name)[1] )
+        senders.send_file( file_name, file_size, alives.get(name)[0], alives.get(name)[1] )
+        senders.file_chunk( f, alives.get(name)[0], alives.get(name)[1], file_size )
+
 
 def talk( name:str, message:str ) -> bool:
     alives = get_registers()
