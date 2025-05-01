@@ -19,8 +19,8 @@ last_seq = 0
 def recive():
     while True:
         try:
-            data, address = sharedSocket.receive( 20000 )
-            print(f"{data}")
+            data, address = sharedSocket.receive( 30000 )
+            # print(f"{data}")
         except socket.timeout:
             continue
         sender_ip, sender_port = address
@@ -29,6 +29,7 @@ def recive():
 
         if len(data_splited) >= 2:
             if data_splited[0] == "ACK":
+                # print(f"ack received: {data_splited[1]}")
                 with ack_lock:
                     ack.add( data_splited[1] )
             elif data_splited[0] == "TALK":
@@ -45,17 +46,13 @@ def _chunk( raw_data, data_splited, sender_ip, sender_port ):
         _ack_send( data_splited, sender_ip, sender_port )
         header, message_id, seq, file_data = raw_data.split( b' ', 3 )
         seq = int( seq )
-        try:
-            file_data = base64.b64decode(file_data + b'=' * (-len(file_data) % 4))
-        except Exception as e:
-            print(f"Erro ao decodificar base64: {e}")
-            return
+
+        file_data = base64.b64decode(file_data + b'=' * (-len(file_data) % 4))
         chunk_package[seq] = file_data
-        with open( "d", 'ab' ) as f:
+        with open( "d.pdf", 'ab' ) as f:
             while True:
                 expected = last_seq + 1
                 if expected in chunk_package:
-                    print(f"escrevendo chunk {expected}")
                     f.write( chunk_package.pop( expected ) )
                     last_seq += 1
                 else:

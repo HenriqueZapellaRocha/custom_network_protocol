@@ -15,8 +15,8 @@ class IDGenerator:
 
 ID_GEN = IDGenerator()
 broadcast_addr = ( '255.255.255.255', 1234 )
-_window_size = 4
-_chunk_size = 1460
+_window_size = 6
+_chunk_size = 20000
 waiting_acks = {}
 
 #CHUNK <id> <seq> <dados>
@@ -31,8 +31,7 @@ def file_chunk( data:BufferedReader, receiver_ip:str, receiver_port:int, file_si
             chunk_data = base64.b64encode( chunk_data )
             message_id = ID_GEN.next_id()
             seq += 1
-            time.sleep( 0.1 )
-            print(f"mandando chunk {chunk_data}")
+            time.sleep( 0.01 )
             _send_chunk( message_id, seq, chunk_data, receiver_ip, receiver_port )
             bytes_sent += len(base64.b64decode(chunk_data))
 
