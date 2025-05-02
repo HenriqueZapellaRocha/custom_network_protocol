@@ -5,10 +5,10 @@ import threading
 import os
 
 def start( name:str ):
-    threading.Thread(target=senders.registry, args=(name,), daemon=True).start()
-    threading.Thread(target=remove_old_heartbeat_messages, daemon=True).start()
-    threading.Thread(target=recive, daemon=True).start()
-    threading.Thread(target=reciver.heartbeat_listener, daemon=True).start()
+    threading.Thread( target=senders.registry, args=( name, ), daemon=True ).start()
+    threading.Thread( target=remove_old_heartbeat_messages, daemon=True ).start()
+    threading.Thread( target=recive, daemon=True ).start()
+    threading.Thread( target=reciver.heartbeat_listener, daemon=True ).start()
 
 #sendfile <nome> <nome-arquivo>
 def send_file( name:str, file_name:str ) -> bool:

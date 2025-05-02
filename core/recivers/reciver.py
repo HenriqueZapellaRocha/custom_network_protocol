@@ -1,9 +1,9 @@
 import base64
 import socket
 import time
+import hashlib
 from core import sharedSocket
 import threading
-from core.senders import senders
 
 
 ids_recived = set()
@@ -38,8 +38,28 @@ def recive():
                 _file( data_splited, sender_ip, sender_port )
             elif data_splited[0] == "CHUNK":
                 _chunk( data, data_splited, sender_ip, sender_port )
+            elif data_splited[0] == "END":
+                print("recebi end")
+                _end( data_splited, sender_ip, sender_port )
 
-def _chunk( raw_data, data_splited, sender_ip, sender_port ):
+def _end( data_splited:list[str], receiver_ip: str, receiver_port: int ) -> None:
+    sha256 = hashlib.sha256()
+    header, message_id, hash = data_splited
+    with open( 'd', 'rb' ) as f:
+        while True:
+            chunk_data = f.read( 4096 )
+            if not chunk_data:
+                break
+            sha256.update( chunk_data )
+    sha256.hexdigest()
+    print(message_id)
+    print(sha256.hexdigest())
+
+    if hash == sha256.hexdigest():
+        print("sao iguais")
+        _ack_send( data_splited, receiver_ip, receiver_port )
+
+def _chunk( raw_data:bytes, data_splited:list[str], sender_ip:str, sender_port:int ) -> None:
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
         global last_seq
@@ -49,7 +69,7 @@ def _chunk( raw_data, data_splited, sender_ip, sender_port ):
 
         file_data = base64.b64decode(file_data + b'=' * (-len(file_data) % 4))
         chunk_package[seq] = file_data
-        with open( "d.pdf", 'ab' ) as f:
+        with open( "d", 'ab' ) as f:
             while True:
                 expected = last_seq + 1
                 if expected in chunk_package:
@@ -73,6 +93,7 @@ def _file( data_splited:list[str], sender_ip:str, sender_port:int ):
 
 def _ack_send( data_splited:list[str], sender_ip:str, sender_port:int ):
         ack_message = f"ACK {data_splited[1]}"
+        print(f"{ack_message} {sender_ip}:{sender_port}")
         sharedSocket.send( ack_message.encode(), (sender_ip, int( sender_port ) ) )
 
 def heartbeat_listener():
