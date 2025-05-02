@@ -9,6 +9,8 @@ import threading
 ids_recived = set()
 alives = dict()
 ack = set()
+nack = set()
+nack_lock = threading.Lock()
 alive_lock = threading.Lock()
 ack_lock = threading.Lock()
 actual_file_name = ''
@@ -32,6 +34,9 @@ def recive():
                 # print(f"ack received: {data_splited[1]}")
                 with ack_lock:
                     ack.add( data_splited[1] )
+            elif data_splited[0] == "NACK":
+                with nack_lock:
+                    nack.add( data_splited[1] )
             elif data_splited[0] == "TALK":
                 _talk( data_splited, sender_ip, sender_port )
             elif data_splited[0] == "FILE":
@@ -39,25 +44,29 @@ def recive():
             elif data_splited[0] == "CHUNK":
                 _chunk( data, data_splited, sender_ip, sender_port )
             elif data_splited[0] == "END":
-                print("recebi end")
                 _end( data_splited, sender_ip, sender_port )
 
-def _end( data_splited:list[str], receiver_ip: str, receiver_port: int ) -> None:
-    sha256 = hashlib.sha256()
-    header, message_id, hash = data_splited
-    with open( 'd', 'rb' ) as f:
-        while True:
-            chunk_data = f.read( 4096 )
-            if not chunk_data:
-                break
-            sha256.update( chunk_data )
-    sha256.hexdigest()
-    print(message_id)
-    print(sha256.hexdigest())
+def _end( data_splited:list[str], sender_ip: str, sender_port: int ) -> None:
+    if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
+        global actual_file_name, chunk_package, last_seq
+        actual_file_name = ''
+        chunk_package = {}
+        last_seq = 0
+        ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
+        sha256 = hashlib.sha256()
+        header, message_id, hash = data_splited
+        with open( 'd', 'rb' ) as f:
+            while True:
+                chunk_data = f.read( 4096 )
+                if not chunk_data:
+                    break
+                sha256.update( chunk_data )
 
-    if hash == sha256.hexdigest():
-        print("sao iguais")
-        _ack_send( data_splited, receiver_ip, receiver_port )
+        if hash == sha256.hexdigest():
+            _ack_send( data_splited, sender_ip, sender_port )
+        else:
+            _nack_send( data_splited, f"error, corrupted file" , sender_ip, sender_port )
+
 
 def _chunk( raw_data:bytes, data_splited:list[str], sender_ip:str, sender_port:int ) -> None:
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
@@ -67,7 +76,7 @@ def _chunk( raw_data:bytes, data_splited:list[str], sender_ip:str, sender_port:i
         header, message_id, seq, file_data = raw_data.split( b' ', 3 )
         seq = int( seq )
 
-        file_data = base64.b64decode(file_data + b'=' * (-len(file_data) % 4))
+        file_data = base64.b64decode( file_data + b'=' * ( -len( file_data ) % 4 ) )
         chunk_package[seq] = file_data
         with open( "d", 'ab' ) as f:
             while True:
@@ -88,13 +97,15 @@ def _file( data_splited:list[str], sender_ip:str, sender_port:int ):
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
         print( f"\nrecebi FILE: {data_splited[2]}")
-        actual_file_name = data_splited[2]
         _ack_send( data_splited, sender_ip, sender_port )
 
 def _ack_send( data_splited:list[str], sender_ip:str, sender_port:int ):
-        ack_message = f"ACK {data_splited[1]}"
-        print(f"{ack_message} {sender_ip}:{sender_port}")
-        sharedSocket.send( ack_message.encode(), (sender_ip, int( sender_port ) ) )
+    ack_message = f"ACK {data_splited[1]}"
+    sharedSocket.send( ack_message.encode(), (sender_ip, int( sender_port ) ) )
+
+def _nack_send(data_splited: list[str], message:str, sender_ip: str, sender_port: int):
+    nack_message = f"NACK {data_splited[1]} {message}"
+    sharedSocket.send(nack_message.encode(), (sender_ip, int(sender_port)))
 
 def heartbeat_listener():
     sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )

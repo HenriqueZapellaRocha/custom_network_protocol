@@ -83,10 +83,14 @@ def _end( f:BufferedReader, receiver_ip: str, receiver_port: int ):
     message_id = ID_GEN.next_id()
     for attempt in range( 1, 4 ):
         sharedSocket.send( f"END {message_id} {file_hash}".encode(), ( receiver_ip, receiver_port ) )
-        time.sleep( 0.6 )
+        time.sleep( 1 )
         if str( message_id ) in reciver.ack:
             print( f"ack recebido END_ID:{message_id}" )
             reciver.ack.remove( str( message_id ) )
+            return message_id
+        elif str( message_id ) in reciver.nack:
+            print( f"nack recebido END_ID:{message_id}" )
+            reciver.nack.remove( str( message_id ) )
             return message_id
         else:
             print( f"ack attempt END_ID:{message_id}" )
