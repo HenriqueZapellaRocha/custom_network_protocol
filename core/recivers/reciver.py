@@ -111,7 +111,6 @@ def _nack_send(data_splited: list[str], message:str, sender_ip: str, sender_port
 
 def heartbeat_listener():
     sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-    sock.setsockopt( socket.SOL_SOCKET, socket.SO_REUSEPORT, 1 )
     sock.setsockopt( socket.SOL_SOCKET, socket.SO_BROADCAST, 1 )
     sock.bind( ( '', 1234 ) )
 
