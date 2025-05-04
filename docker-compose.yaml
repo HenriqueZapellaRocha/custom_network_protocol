@@ -4,6 +4,13 @@ services:
   device1:
     stdin_open: true
     tty: true
+    entrypoint: >
+      /bin/bash -c "
+        tc qdisc add dev eth0 root netem delay 1ms reorder 25% 50% &&
+        python3 /app/main.py
+      "
+    cap_add:
+    - NET_ADMIN
     build: .
     container_name: device1
     volumes:

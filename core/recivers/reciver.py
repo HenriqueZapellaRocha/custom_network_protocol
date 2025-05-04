@@ -22,16 +22,14 @@ def recive():
     while True:
         try:
             data, address = sharedSocket.receive( 30000 )
-            # print(f"{data}")
         except socket.timeout:
             continue
         sender_ip, sender_port = address
         data_text = data.decode()
-        data_splited = data_text.split( ' ', 2 )
+        data_splited = data_text.split( ' ', 4 )
 
         if len(data_splited) >= 2:
             if data_splited[0] == "ACK":
-                # print(f"ack received: {data_splited[1]}")
                 with ack_lock:
                     ack.add( data_splited[1] )
             elif data_splited[0] == "NACK":
@@ -49,13 +47,12 @@ def recive():
 def _end( data_splited:list[str], sender_ip: str, sender_port: int ) -> None:
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         global actual_file_name, chunk_package, last_seq
-        actual_file_name = ''
         chunk_package = {}
         last_seq = 0
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
         sha256 = hashlib.sha256()
         header, message_id, hash = data_splited
-        with open( 'd', 'rb' ) as f:
+        with open( actual_file_name, 'rb' ) as f:
             while True:
                 chunk_data = f.read( 4096 )
                 if not chunk_data:
@@ -66,19 +63,20 @@ def _end( data_splited:list[str], sender_ip: str, sender_port: int ) -> None:
             _ack_send( data_splited, sender_ip, sender_port )
         else:
             _nack_send( data_splited, f"error, corrupted file" , sender_ip, sender_port )
+        actual_file_name = ''
 
 
 def _chunk( raw_data:bytes, data_splited:list[str], sender_ip:str, sender_port:int ) -> None:
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
-        global last_seq
+        global last_seq, actual_file_name
         _ack_send( data_splited, sender_ip, sender_port )
         header, message_id, seq, file_data = raw_data.split( b' ', 3 )
         seq = int( seq )
 
         file_data = base64.b64decode( file_data + b'=' * ( -len( file_data ) % 4 ) )
         chunk_package[seq] = file_data
-        with open( "d", 'ab' ) as f:
+        with open( actual_file_name, 'ab' ) as f:
             while True:
                 expected = last_seq + 1
                 if expected in chunk_package:
@@ -90,13 +88,17 @@ def _chunk( raw_data:bytes, data_splited:list[str], sender_ip:str, sender_port:i
 def _talk( data_splited:list[str], sender_ip:str, sender_port:int ):
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
-        print( f"\nrecebi TALK: {data_splited[2]}")
+        print( f"\n\n\nrecebi TALK: {data_splited[2]}")
         _ack_send( data_splited, sender_ip, sender_port )
 
 def _file( data_splited:list[str], sender_ip:str, sender_port:int ):
     if ( data_splited[1], ( sender_ip + str( sender_port ) ) ) not in ids_recived:
+        global actual_file_name
+        head, seq, file_name, file_size = data_splited
+        actual_file_name = file_name
+        print(f"to aqui {seq}, {file_name}, {file_size}")
         ids_recived.add( ( data_splited[1], ( sender_ip + str( sender_port ) ) ) )
-        print( f"\nrecebi FILE: {data_splited[2]}")
+        print( f"\n\n\nrecebi FILE: {data_splited[2]}")
         _ack_send( data_splited, sender_ip, sender_port )
 
 def _ack_send( data_splited:list[str], sender_ip:str, sender_port:int ):

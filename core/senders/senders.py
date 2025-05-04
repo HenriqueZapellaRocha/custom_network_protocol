@@ -4,6 +4,7 @@ from core import sharedSocket
 from core.recivers import reciver
 import base64
 import hashlib
+import sys
 
 class IDGenerator:
     def __init__(self):
@@ -16,13 +17,14 @@ class IDGenerator:
 
 ID_GEN = IDGenerator()
 broadcast_addr = ( '255.255.255.255', 1234 )
-_window_size = 10
-_chunk_size = 10000
+_window_size = 100
+_chunk_size = 5000
 waiting_acks = {}
 
 def file_chunk( data:BufferedReader, receiver_ip:str, receiver_port:int, file_size:int ) -> None:
     seq = 0
     bytes_sent = 0
+    
     while bytes_sent < file_size:
         for window in range( _window_size ):
             chunk_data = data.read( _chunk_size )
@@ -34,6 +36,11 @@ def file_chunk( data:BufferedReader, receiver_ip:str, receiver_port:int, file_si
             time.sleep( 0.01 )
             _send_chunk( message_id, seq, chunk_data, receiver_ip, receiver_port )
             bytes_sent += len( base64.b64decode( chunk_data ) )
+            
+            percent = (bytes_sent / file_size) * 100
+            sys.stdout.write("\033[2K\r")  
+            sys.stdout.write(f"Enviado: {percent:.2f}%")
+            sys.stdout.flush()
 
         error = _window_slide_ack_wait( receiver_ip, receiver_port )
         if not error:
@@ -85,17 +92,17 @@ def _end( f:BufferedReader, receiver_ip: str, receiver_port: int ):
         sharedSocket.send( f"END {message_id} {file_hash}".encode(), ( receiver_ip, receiver_port ) )
         time.sleep( 1 )
         if str( message_id ) in reciver.ack:
-            print( f"ack recebido END_ID:{message_id}" )
+            print( f"\nack recebido END_ID:{message_id}, arquivo enviado está integro" )
             reciver.ack.remove( str( message_id ) )
             return message_id
         elif str( message_id ) in reciver.nack:
-            print( f"nack recebido END_ID:{message_id}" )
+            print( f"\nnack recebido END_ID:{message_id},arquivo enviado não está integro" )
             reciver.nack.remove( str( message_id ) )
             return message_id
         else:
-            print( f"ack attempt END_ID:{message_id}" )
+            print( f"\nack attempt END_ID:{message_id}" )
 
-    print( f"desistindo do envio de end {message_id}, timeout attempt" )
+    print( f"\ndesistindo do envio de end {message_id}, timeout attempt" )
     return -1
 
 def _calculate_sha256( f:BufferedReader ) -> str:

@@ -11,13 +11,15 @@ def start( name:str ):
     threading.Thread( target=reciver.heartbeat_listener, daemon=True ).start()
 
 #sendfile <nome> <nome-arquivo>
-def send_file( name:str, file_name:str ) -> bool:
+def send_file( name:str, file_name:str, file_name_receiver:str  ) -> bool:
     alives = get_registers()
     if name not in alives:
         return False
     file_size = os.path.getsize( file_name )
     with open( file_name, 'rb' ) as f:
-        senders.send_file( file_name, file_size, alives.get(name)[0], alives.get(name)[1] )
+        error = senders.send_file( file_name_receiver, file_size, alives.get(name)[0], alives.get(name)[1] )
+        if error == -1:
+            return False
         senders.file_chunk( f, alives.get(name)[0], alives.get(name)[1], file_size )
 
 
