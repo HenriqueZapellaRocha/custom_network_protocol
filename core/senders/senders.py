@@ -18,7 +18,7 @@ class IDGenerator:
 ID_GEN = IDGenerator()
 broadcast_addr = ( '255.255.255.255', 1234 )
 _window_size = 100
-_chunk_size = 5000
+_chunk_size = 1460
 waiting_acks = {}
 
 def file_chunk( data:BufferedReader, receiver_ip:str, receiver_port:int, file_size:int ) -> None:

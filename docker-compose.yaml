@@ -6,7 +6,7 @@ services:
     tty: true
     entrypoint: >
       /bin/bash -c "
-        tc qdisc add dev eth0 root netem delay 1000ms reorder 25% 50% &&
+        tc qdisc add dev eth0 root netem delay 50ms 20ms distribution normal loss 2% corrupt 1% reorder 10% 25% &&
         tcpdump -i eth0 -w /app/device1.pcap &
         python3 /app/main.py
       "
@@ -23,6 +23,11 @@ services:
   device2:
     stdin_open: true
     tty: true
+    entrypoint: >
+      /bin/bash -c "
+        tcpdump -i eth0 -w /app/device2.pcap &
+        python3 /app/main.py
+      "
     build: .
     container_name: device2
     volumes:
